@@ -1,64 +1,64 @@
+import model from "./model.js";
 import { v4 as uuidv4 } from "uuid";
 
 const normalize = (value) => (value || "").trim().toLowerCase();
 
 export default function UsersDao(db) {
   const createUser = (user) => {
+    const { _id, ...userWithoutId } = user;
     const username = user.username ?? user.loginId ?? "";
     const password = user.password ?? username;
     const newUser = {
-      ...user,
+      ...userWithoutId,
       _id: uuidv4(),
       username,
-      loginId: user.loginId ?? username,
+      loginId: userWithoutId.loginId ?? username,
       password,
     };
-    db.users = [...db.users, newUser];
-    return newUser;
+    return model.create(newUser);
   };
 
-  const findAllUsers = () => db.users;
+  const findAllUsers = () => model.find();
 
-  const findUserById = (userId) => db.users.find((user) => user._id === userId);
+  const findUsersByRole = (role) => model.find({ role });
 
-  const findUserByUsername = (username) =>
-    db.users.find(
-      (user) => normalize(user.username ?? user.loginId) === normalize(username)
+  const findUsersByPartialName = (partialName) => {
+    const regex = new RegExp(partialName, "i");
+    return model.find({
+      $or: [{ firstName: { $regex: regex } }, { lastName: { $regex: regex } }],
+    });
+  };
+
+  const findUserById = (userId) => model.findById(userId);
+
+  const findUserByUsername = async (username) => {
+    const users = await model.find({
+      $or: [{ username: { $exists: true } }, { loginId: { $exists: true } }],
+    });
+    return users.find(
+      (user) =>
+        normalize(user.username) === normalize(username) ||
+        normalize(user.loginId) === normalize(username)
     );
-
-  const findUserByCredentials = (username, password) =>
-    db.users.find((user) => {
-      const storedUsername = user.username ?? user.loginId;
-      const storedPassword = user.password ?? user.loginId;
-      return (
-        normalize(storedUsername) === normalize(username) &&
-        normalize(storedPassword) === normalize(password)
-      );
-    });
-
-  const updateUser = (userId, userUpdates) => {
-    let updatedUser = null;
-    db.users = db.users.map((user) => {
-      if (user._id !== userId) return user;
-      updatedUser = {
-        ...user,
-        ...userUpdates,
-        _id: userId,
-      };
-      return updatedUser;
-    });
-    return updatedUser;
   };
 
-  const deleteUser = (userId) => {
-    const beforeCount = db.users.length;
-    db.users = db.users.filter((user) => user._id !== userId);
-    return beforeCount !== db.users.length;
+  const findUserByCredentials = async (username, password) => {
+    const user = await findUserByUsername(username);
+    if (!user) return null;
+    const storedPassword = user.password ?? user.loginId;
+    return normalize(storedPassword) === normalize(password) ? user : null;
   };
+
+  const updateUser = (userId, userUpdates) =>
+    model.updateOne({ _id: userId }, { $set: userUpdates });
+
+  const deleteUser = (userId) => model.findByIdAndDelete(userId);
 
   return {
     createUser,
     findAllUsers,
+    findUsersByRole,
+    findUsersByPartialName,
     findUserById,
     findUserByUsername,
     findUserByCredentials,
