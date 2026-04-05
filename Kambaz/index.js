@@ -4,6 +4,7 @@ import CourseRoutes from "./Courses/routes.js";
 import ModulesRoutes from "./Modules/routes.js";
 import AssignmentRoutes from "./Assignments/routes.js";
 import EnrollmentRoutes from "./Enrollments/routes.js";
+import QuizRoutes from "./Quizzes/routes.js";
 
 export default function Kambaz(app) {
   UserRoutes(app, Database);
@@ -11,4 +12,5 @@ export default function Kambaz(app) {
   ModulesRoutes(app, Database);
   AssignmentRoutes(app, Database);
   EnrollmentRoutes(app, Database);
+  QuizRoutes(app, Database);
 }
