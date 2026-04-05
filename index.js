@@ -45,4 +45,6 @@ Kambaz(app);
 Hello(app);
 
 const port = process.env.PORT || 4000;
-app.listen(port);
+app.listen(port, () => {
+  console.log(`Kambaz server running on http://localhost:${port}`);
+});

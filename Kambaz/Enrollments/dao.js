@@ -1,33 +1,48 @@
-import { v4 as uuidv4 } from "uuid";
+import model from "./model.js";
 
 export default function EnrollmentsDao(db) {
   function findEnrollmentsForUser(userId) {
-    return db.enrollments.filter((enrollment) => enrollment.user === userId);
+    return model.find({ user: userId });
+  }
+
+  async function findCoursesForUser(userId) {
+    const enrollments = await model.find({ user: userId }).populate("course");
+    return enrollments.map((enrollment) => enrollment.course);
+  }
+
+  async function findUsersForCourse(courseId) {
+    const enrollments = await model.find({ course: courseId }).populate("user");
+    return enrollments.map((enrollment) => enrollment.user);
   }
 
   function enrollUserInCourse(userId, courseId) {
-    const existingEnrollment = db.enrollments.find(
-      (enrollment) =>
-        enrollment.user === userId && enrollment.course === courseId
+    return model.findOneAndUpdate(
+      { user: userId, course: courseId },
+      {
+        $setOnInsert: {
+          _id: `${userId}-${courseId}`,
+          user: userId,
+          course: courseId,
+        },
+      },
+      { new: true, upsert: true }
     );
-    if (existingEnrollment) return existingEnrollment;
-    const enrollment = { _id: uuidv4(), user: userId, course: courseId };
-    db.enrollments.push(enrollment);
-    return enrollment;
   }
 
   function unenrollUserFromCourse(userId, courseId) {
-    const beforeCount = db.enrollments.length;
-    db.enrollments = db.enrollments.filter(
-      (enrollment) =>
-        !(enrollment.user === userId && enrollment.course === courseId)
-    );
-    return beforeCount !== db.enrollments.length;
+    return model.deleteOne({ user: userId, course: courseId });
+  }
+
+  function unenrollAllUsersFromCourse(courseId) {
+    return model.deleteMany({ course: courseId });
   }
 
   return {
     findEnrollmentsForUser,
+    findCoursesForUser,
+    findUsersForCourse,
     enrollUserInCourse,
     unenrollUserFromCourse,
+    unenrollAllUsersFromCourse,
   };
 }
