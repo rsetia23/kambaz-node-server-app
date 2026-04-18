@@ -69,4 +69,14 @@ export default [
     lastActivity: "1 hour ago",
     totalActivity: "11:20:00",
   },
+  {
+    _id: "999",
+    firstName: "Admin",
+    lastName: "User",
+    loginId: "admin",
+    section: "S101",
+    role: "ADMIN",
+    lastActivity: "just now",
+    totalActivity: "00:00:00",
+  },
 ];
